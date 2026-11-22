@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Datos de transferencia</title>
+<style>
+  :root { --bg:#f4f6f8; --card:#fff; --text:#1d2430; --muted:#6b7480; --accent:#0a7d5a; --line:#e3e7eb; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width:440px; margin:0 auto; padding:24px 16px 40px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 20px; font-size:15px; }
+  .card { background:var(--card); border-radius:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); overflow:hidden; }
+  .row { display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); }
+  .row:last-child { border-bottom:none; }
+  .info { flex:1; min-width:0; }
+  .label { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  .value { font-size:17px; font-weight:600; word-break:break-all; }
+  button.copy { border:1px solid var(--accent); color:var(--accent); background:#fff; border-radius:10px; padding:8px 12px; font-size:14px; font-weight:600; min-width:84px; cursor:pointer; }
+  button.copy.ok { background:var(--accent); color:#fff; }
+  .all { display:block; width:100%; margin:18px 0 10px; padding:16px; border:none; border-radius:14px; background:var(--accent); color:#fff; font-size:17px; font-weight:700; cursor:pointer; }
+  .all.ok { background:#065c42; }
+  .note { font-size:14px; color:var(--muted); text-align:center; line-height:1.45; }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#1d2430; color:#fff; padding:10px 16px; border-radius:10px; font-size:14px; opacity:0; transition:opacity .2s; pointer-events:none; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Datos de transferencia</h1>
+  <p class="sub">Toca "Copiar" y pega en tu app del banco.</p>
+
+  <div class="card" id="lista"></div>
+
+  <button class="all" id="copiarTodo">Copiar todos los datos</button>
+  <p class="note">Envía el comprobante a<br><strong id="correoNota"></strong></p>
+</main>
+<div class="toast" id="toast">Copiado</div>
+
+<script>
+  // ===== EDITA TUS DATOS AQUÍ =====
+  const DATOS = [
+    { label: "Nombre",         value: "Claudia Cabezas" },
+    { label: "RUT",            value: "16.492.464-5" },
+    { label: "Banco",          value: "BancoEstado" },
+    { label: "Tipo de cuenta", value: "Cuenta RUT" },
+    { label: "N° de cuenta",   value: "16492464" },
+    { label: "Correo",         value: "claudiacabezas.s@gmail.com" }
+  ];
+  // =================================
+
+  const lista = document.getElementById("lista");
+  const toast = document.getElementById("toast");
+  document.getElementById("correoNota").textContent =
+    (DATOS.find(d => d.label === "Correo") || {}).value || "";
+
+  function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", "");
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+    let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta); return ok;
+  }
+  async function copy(text) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch (e) { return fallbackCopy(text); }
+  }
+  function flash(btn, okText, normalText, msg) {
+    btn.classList.add("ok"); btn.textContent = okText;
+    toast.textContent = msg; toast.classList.add("show");
+    setTimeout(() => { btn.classList.remove("ok"); btn.textContent = normalText; toast.classList.remove("show"); }, 1500);
+  }
+
+  DATOS.forEach(d => {
+    const row = document.createElement("div"); row.className = "row";
+    row.innerHTML = '<div class="info"><div class="label"></div><div class="value"></div></div><button class="copy">Copiar</button>';
+    row.querySelector(".label").textContent = d.label;
+    row.querySelector(".value").textContent = d.value;
+    const btn = row.querySelector("button");
+    btn.addEventListener("click", async () => {
+      const ok = await copy(d.value);
+      flash(btn, ok ? "✓ Listo" : "Error", "Copiar", ok ? d.label + " copiado" : "No se pudo copiar");
+    });
+    lista.appendChild(row);
+  });
+
+  const allBtn = document.getElementById("copiarTodo");
+  allBtn.addEventListener("click", async () => {
+    const text = DATOS.map(d => d.value).join("\n");
+    const ok = await copy(text);
+    flash(allBtn, ok ? "✓ Datos copiados" : "No se pudo copiar", "Copiar todos los datos", ok ? "Todos los datos copiados" : "Intenta copiar uno por uno");
+  });
+</script>
+</body>
+</html>
